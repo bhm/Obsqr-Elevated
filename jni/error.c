@@ -1,0 +1,1 @@
+/home/hiv/src/zbar/zbar/error.c
