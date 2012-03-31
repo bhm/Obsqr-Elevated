@@ -54,7 +54,7 @@
 	<!-- Email -->
     <string name="email_qr_send_dlg_title">Wyślij przez email...</string>
 
-    <string name="dlg_tv_question">Jeśli na prawde podoba Ci się ta aplikacja, docenimy jeśli zostawisz komentarz na Google Play</string>
+    <string name="dlg_tv_question">Jeśli podoba Ci się ta aplikacja, docenimy jeśli zostawisz komentarz na Google Play</string>
     <string name="dlg_btn_ignore_caption">Zignoruj</string>
     <string name="dlg_btn_rate_caption">Oceń</string>
 
