@@ -22,6 +22,8 @@ obsqr is a fast and lightweight QR scanner application for Android.
 ------------
 
 * MECARD reimplementation for new classes, and cohesive adding contacts.
+* Proper account selection for importing contacts.
+* Formating text for preview.
 
 ## Requirements
 

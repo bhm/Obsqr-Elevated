@@ -61,7 +61,7 @@ public class QrParser {
 	/** Returns the appropriate parser for current type of decoded content */
 	public QrContent parse(String s) {
 		Log.d(tag, "parse()");
-		if (s.startsWith("http://")) {
+		if (s.startsWith("http://") || s.startsWith("https://")) {
 			return new QrContentUrl(mContext, s);
 		} else if (s.startsWith("mailto:")) {
 			return new QrContentMail(mContext, s);
@@ -161,7 +161,7 @@ public class QrParser {
 				text = mContext.getResources().getString(R.string.contact_qr_name_title);
 				res.append(text + " " + mName + "\n");
 			}
-			if (mPhones.size() != 0 || mPhones != null){
+			if (mPhones.size() > 0 || mPhones != null){
 				text = mContext.getResources().getString(R.string.contact_qr_phone_title);
 				StringBuilder sb_phones = new StringBuilder();
 				for (Map.Entry<Integer, String> phone : mPhones.entrySet()){
@@ -171,7 +171,7 @@ public class QrParser {
 						sb_phones.append(phone.getValue());
 				} res.append(text + " " + sb_phones + "\n");
 			}			
-			if (mAddresses.size() != 0 || mAddresses != null){
+			if (mAddresses.size() > 0 || mAddresses != null){
 				text = mContext.getResources().getString(R.string.contact_qr_address_title);
 				StringBuilder sb_address = new StringBuilder();
 				for (Entry<Integer, String[]> address : mAddresses.entrySet()){
@@ -181,7 +181,7 @@ public class QrParser {
 					}	res.append(text + sb_address + "\n");									
 				}				
 			}
-			if (mEmails.size() != 0 || mEmails != null){
+			if (mEmails.size() > 0 || mEmails != null){
 				text = mContext.getResources().getString(R.string.contact_qr_email_title);
 				StringBuilder sb_emails = new StringBuilder();
 				for (Map.Entry<Integer, String> email : mEmails.entrySet()){
@@ -191,7 +191,7 @@ public class QrParser {
 						sb_emails.append(email.getValue());
 				} res.append(text + " " + sb_emails + "\n");
 			}
-			if (mOrganisations.size() != 0 || mOrganisations != null){
+			if (mOrganisations.size() > 0 || mOrganisations != null){
 				text = mContext.getResources().getString(R.string.contact_qr_company_title);
 				StringBuilder sb_orgs = new StringBuilder();
 				for (String org : mOrganisations){
@@ -201,7 +201,7 @@ public class QrParser {
 						sb_orgs.append(org);
 				} res.append(text + " " + sb_orgs + "\n");
 			}
-			if (mRoles.size() != 0 || mRoles != null){
+			if (mRoles.size() > 0 || mRoles != null){
 				text = mContext.getResources().getString(R.string.contact_qr_role_title);
 				StringBuilder sb_roles = new StringBuilder();
 				for (String role : mRoles)
@@ -211,7 +211,7 @@ public class QrParser {
 						sb_roles.append(role);
 				res.append(text + " " + sb_roles + "\n");
 			}
-			if (Titles.size() != 0 || Titles != null){
+			if (Titles.size() > 0 || Titles != null){
 				text = mContext.getResources().getString(R.string.contact_qr_title_title);
 				StringBuilder sb_titles = new StringBuilder();
 				for (String title : Titles)
