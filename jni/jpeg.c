@@ -1,1 +1,0 @@
-/home/hiv/src/zbar/zbar/jpeg.c

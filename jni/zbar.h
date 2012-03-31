@@ -1,1 +1,0 @@
-/home/hiv/src/zbar/include/zbar.h
