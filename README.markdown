@@ -1,4 +1,4 @@
-qr - minimalistic QR scanner for Android
+# obsqr - minimalistic QR scanner for Android
 
 obsqr is a fast and lightweight QR scanner application for Android.
 
