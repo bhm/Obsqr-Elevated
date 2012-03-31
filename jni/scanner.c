@@ -1,0 +1,1 @@
+/home/hiv/src/zbar/zbar/scanner.c
