@@ -105,7 +105,7 @@ After this step, you should get an *.apk inside the 'bin' directory.
 
 Install it normal way
 
-   $ adb install -r ./bin/obsqr-debug.apk
+    $ adb install -r ./bin/obsqr-debug.apk
 
 
 
