@@ -83,8 +83,11 @@ public class VCardParser {
 				String[] mOrganisation = contact[i].split(":");				
 				this.Organizations.add(mOrganisation[1].replace(";", " "));
 			} else if (contact[i].startsWith("URL")) {
-				String[] url_line = contact[i].split(":");
-				this.URLs.add(url_line[1]);
+				//String[] url_line = contact[i].split(":");
+				/*
+				 * Will fall flat on http://
+				 */
+				this.URLs.add(contact[i].substring(4));
 			} else if (contact[i].startsWith("BDAY")) { this.BirthDay = contact[i].substring(5);}				
 		}	
 	}		
