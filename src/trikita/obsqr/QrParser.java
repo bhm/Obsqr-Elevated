@@ -1,16 +1,19 @@
 package trikita.obsqr;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.Intents.Insert;
 import android.util.Log;
 import android.widget.Toast;
-import android.provider.ContactsContract;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
 /* This class provides QR content parsing for all the types of QRs.
  * The parsers of the different types of QRs implement nested interface QrContent
@@ -26,19 +29,15 @@ public class QrParser {
 	private static QrParser mInstance = null;
 
 	public interface QrContent {
-		public void launch();
+		public void launch() throws android.content.ActivityNotFoundException;
 		public String toString();
 		public String getTitle();
 		public String getActionName();
 	}
 
-	public abstract class BaseQrContent {
+	public abstract static class BaseQrContent implements QrContent {
 		protected String mContent;
 		protected String mTitle;
-
-		public abstract void launch();
-		public abstract String toString();
-		public abstract String getActionName();
 
 		public String getTitle() {
 			return mTitle;
@@ -61,29 +60,29 @@ public class QrParser {
 	/** Returns the appropriate parser for current type of decoded content */
 	public QrContent parse(String s) {
 		Log.d(tag, "parse()");
-		if (s.startsWith("http://") || s.startsWith("https://")) {
-			return new QrContentUrl(mContext, s);
-		} else if (s.startsWith("mailto:")) {
+		if (QrContentMail.match(s)) {
 			return new QrContentMail(mContext, s);
-		} else if (s.startsWith("smsto:")) {
+		} else if (QrContentUrl.match(s)) {
+			return new QrContentUrl(mContext, s);
+		} else if (QrContentSms.match(s)) {
 			return new QrContentSms(mContext, s);
-		} else if (s.startsWith("geo:")) {
+		} else if (QrContentGeo.match(s)) {
 			return new QrContentGeo(mContext, s);
-		} else if (s.startsWith("tel:")) {
+		} else if (QrContentPhone.match(s)) {
 			return new QrContentPhone(mContext, s);
-		} else if (s.startsWith("market://")) {
+		} else if (QrContentMarket.match(s)) {
 			return new QrContentMarket(mContext, s);
-		} else if (s.startsWith("MECARD:")) {
+		} else if (QrContentContact.match(s)) {
 			return new QrContentContact(mContext, s);
-		} else if (s.startsWith("BEGIN:")) {
-			return new QrContentContactvCard(mContext, s);
+		} else if (QrContentvCard.match(s)) {
+			return new QrContentvCard(mContext, s);
 		} else {
 			return new QrContentText(mContext, s);
 		}
 	}
 
 	/* ----------------------- QR type: plain text --------------------- */
-	private class QrContentText extends BaseQrContent implements QrContent {
+	private static class QrContentText extends BaseQrContent {
 		private Context mContext;
 
 		public QrContentText(Context ctx, String s) {
@@ -106,133 +105,113 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_text); 
 		}
+
+		public static boolean match(String s) {
+			return true;
+		}
 	}
-	
-	private class QrContentContactvCard extends BaseQrContent implements QrContent{
-		private String mName;
-		private HashMap<Integer, String> mPhones;
-		private HashMap<Integer, String[]> mAddresses;
-		private HashMap<Integer, String> mEmails;
-		private ArrayList<String> mOrganisations;
-		private ArrayList<String> mRoles;
-		private ArrayList<String> Titles;
-		private ArrayList<String> Notes;
-//		private String BDAY;
-		VCardParser parser;
+	/* ----------------------- QR type: vCard 2.1 contact information --------------------- */
+	private static class QrContentvCard extends BaseQrContent {
+		private Context mContext;
+		private VCardParser parser;
+		private String RawContent;
+		private vCard card;
 		
-		public QrContentContactvCard(Context ctx, String s) {
-			mContext = ctx;
-			mContent = s;
+		private String mName;
+		private String mPhone;	
+		private int mPhone_type;
+		private String mAddress;
+		private int mAddress_type;
+		private String mEmail;
+		private int mEmail_type;
+		private String mCompany;
+
+		
+		public QrContentvCard(Context context, String s) {
+			RawContent = s;
+			mContext = context;
+			parser = new VCardParser();
 			mTitle = mContext.getResources().getString(R.string.contact_qr_type_name);
-		}			
-				
-		public void launch() {	
-			ContactManager cm = new ContactManager(mContext);
-			cm.setName(mName);
-			cm.setPhones(mPhones);
-			cm.setEmails(mEmails);
-			cm.setAddresses(mAddresses);
-			cm.setOrganisations(mOrganisations);
-			cm.setRoles(mRoles);
-			cm.setTitles(Titles);
-			cm.setNotes(Notes);
-			cm.addContact();
 		}
 		
-		private void getContactInfo(){
-			parser = new VCardParser(mContent);
-			mName = parser.getName();
-			if (parser.getFName() != null){	mName = parser.getFName();}
-			mPhones = parser.getPhones();
-			mEmails = parser.getEmails();
-			mAddresses = parser.getAddresses();
-			mOrganisations = parser.getOrg();
-			mRoles = parser.getRoles(); 
-			Titles = parser.getTitles();
-			Notes = parser.getNotes();
-		}	
-
 		@Override
-		public String toString() {		
-			getContactInfo();
+		public void launch() {			
+			Intent intent = new Intent(Intent.ACTION_INSERT);
+			intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
+			if (mName != null) {
+				intent.putExtra(ContactsContract.Intents.Insert.NAME, mName);
+			}
+			if (mPhone != null) {
+				intent.putExtra(ContactsContract.Intents.Insert.PHONE, mPhone);
+				intent.putExtra(Insert.PHONE_TYPE, mPhone_type);
+			}
+			if (mAddress != null) {
+				intent.putExtra(ContactsContract.Intents.Insert.POSTAL, mAddress);
+				intent.putExtra(Insert.POSTAL_TYPE, mAddress_type);
+			}
+			if (mEmail != null) {
+				intent.putExtra(ContactsContract.Intents.Insert.EMAIL, mEmail);
+				intent.putExtra(Insert.EMAIL_TYPE, mEmail_type);
+			}
+			if (mCompany != null) {
+				intent.putExtra(ContactsContract.Intents.Insert.COMPANY, mCompany);
+			}			
+			mContext.startActivity(intent);
+		}
+		
+		private void parse() {
+			card = parser.parseContents(RawContent);
+			mName = card.Name;
+			mAddress = card.first(card.Addresses);
+			if (card.type(card.Addresses, mAddress) != -1) { mAddress_type = card.type(card.Addresses, mAddress);} 
+			mPhone = card.first(card.Phones);
+			if (card.type(card.Phones, mPhone) != -1) { mPhone_type = card.type(card.Phones, mPhone);}			
+			mEmail = card.first(card.Emails);
+			if (card.type(card.Emails, mEmail) != -1) { mEmail_type = card.type(card.Emails, mEmail);} 
+			mCompany = card.first(card.Organizations);
+		}
+		
+		public String toString() {
+			parse();			
 			StringBuilder res = new StringBuilder();
 			String text;
 			if (mName != null) { 
 				text = mContext.getResources().getString(R.string.contact_qr_name_title);
-				res.append(text + " " + mName + "\n");
+				res.append(text + " " + card.Name + "\n");
 			}
-			if (mPhones.size() > 0 || mPhones != null){
+			if (mPhone != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_phone_title);
-				StringBuilder sb_phones = new StringBuilder();
-				for (Map.Entry<Integer, String> phone : mPhones.entrySet()){
-					if (phone.getValue().length() > 1)
-						sb_phones.append(phone.getValue() + " ");					
-					else						
-						sb_phones.append(phone.getValue());
-				} res.append(text + " " + sb_phones + "\n");
-			}			
-			if (mAddresses.size() > 0 || mAddresses != null){
+				res.append(text + " " + mPhone + "\n");
+			}
+			if (mAddress != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_address_title);
-				StringBuilder sb_address = new StringBuilder();
-				for (Entry<Integer, String[]> address : mAddresses.entrySet()){
-					for (String address_part : address.getValue()){
-						if (address_part != "")
-							sb_address.append(address_part + " ");
-					}	res.append(text + sb_address + "\n");									
-				}				
+				res.append(text + " " + mAddress + "\n");
 			}
-			if (mEmails.size() > 0 || mEmails != null){
+			if (mEmail != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_email_title);
-				StringBuilder sb_emails = new StringBuilder();
-				for (Map.Entry<Integer, String> email : mEmails.entrySet()){
-					if (email.getValue().length() > 1)
-						sb_emails.append(email.getValue() + " ");											
-					else 
-						sb_emails.append(email.getValue());
-				} res.append(text + " " + sb_emails + "\n");
+				res.append(text + " " + mEmail + "\n");
 			}
-			if (mOrganisations.size() > 0 || mOrganisations != null){
+			if (mCompany != null) { 
 				text = mContext.getResources().getString(R.string.contact_qr_company_title);
-				StringBuilder sb_orgs = new StringBuilder();
-				for (String org : mOrganisations){
-					if (mOrganisations.size() > 1)
-						sb_orgs.append(org + " ");
-					else 
-						sb_orgs.append(org);
-				} res.append(text + " " + sb_orgs + "\n");
-			}
-			if (mRoles.size() > 0 || mRoles != null){
-				text = mContext.getResources().getString(R.string.contact_qr_role_title);
-				StringBuilder sb_roles = new StringBuilder();
-				for (String role : mRoles)
-					if (mRoles.size() > 1)
-						sb_roles.append(role + " ");
-					else 
-						sb_roles.append(role);
-				res.append(text + " " + sb_roles + "\n");
-			}
-			if (Titles.size() > 0 || Titles != null){
-				text = mContext.getResources().getString(R.string.contact_qr_title_title);
-				StringBuilder sb_titles = new StringBuilder();
-				for (String title : Titles)
-					if (Titles.size() > 1)
-						sb_titles.append(title + " ");
-					else
-						sb_titles.append(title);
-				res.append(text + " " + sb_titles + "\n");
+				res.append(text + " " + mCompany);
 			}
 			return res.toString();
 		}
 
 		@Override
 		public String getActionName() {
-			return mContext.getResources().getString(R.string.help_prompt_contact);
+			return mContext.getResources().getString(R.string.help_prompt_vcard);
+		}
+		
+		public static boolean match(String s) {
+			return (s.startsWith("BEGIN:"));
 		}
 		
 	}
+	
 
 	/* ----------------------- QR type: MECARD contact information --------------------- */
-	private class QrContentContact extends BaseQrContent implements QrContent {
+	private static class QrContentContact extends BaseQrContent {
 		private Context mContext;
 
 		/* Contact info */
@@ -325,10 +304,14 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_contact);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("MECARD:"));
+		}
 	}
 	
 	/* ----------------------- QR type: market links --------------------- */
-	private class QrContentMarket extends BaseQrContent implements QrContent {
+	private static class QrContentMarket extends BaseQrContent {
 		private Context mContext;
 
 		public QrContentMarket(Context ctx, String s) {
@@ -346,7 +329,7 @@ public class QrParser {
 				Toast.makeText(mContext, mContext.getResources()
 						.getString(R.string.alert_msg_invalid_market_link),
 						Toast.LENGTH_SHORT).show();
-			}		
+			}
 		}
 
 		public String toString() {
@@ -356,10 +339,14 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_market);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("market://"));
+		}
 	}	
 
 	/* ----------------------- QR type: phone number --------------------- */
-	private class QrContentPhone extends BaseQrContent implements QrContent {
+	private static class QrContentPhone extends BaseQrContent {
 		private Context mContext;
 
 		public QrContentPhone(Context ctx, String s) {
@@ -380,11 +367,15 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_phone);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("tel:"));
+		}
 	}	
 
 
 	/* ----------------------- QR type: geolocation --------------------- */
-	private class QrContentGeo extends BaseQrContent implements QrContent {
+	private static class QrContentGeo extends BaseQrContent {
 		private Context mContext;
 		private boolean mIsValidData;
 
@@ -428,7 +419,8 @@ public class QrParser {
 				if (params.length == 3) {
 					float altitude = Float.parseFloat(params[2]);	
 					res.append("\n" + mContext.getResources().getString(R.string.geo_qr_altitude_title) + 
-							" " + altitude + " " + mContext.getResources().getString(R.string.geo_qr_altitude_suffix));
+							" " + altitude + " " + 
+							mContext.getResources().getString(R.string.geo_qr_altitude_suffix));
 				}
 				mIsValidData = true;
 				return res.toString();
@@ -440,10 +432,14 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_geo);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("geo:"));
+		}
 	}	
 
 	/* ----------------------- QR type: sms --------------------- */
-	private class QrContentSms extends BaseQrContent implements QrContent {
+	private static class QrContentSms extends BaseQrContent {
 		private Context mContext;
 
 		public QrContentSms(Context ctx, String s) {
@@ -478,10 +474,14 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_sms);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("smsto:"));
+		}
 	}	
 	
 	/* ----------------------- QR type: email --------------------- */
-	private class QrContentMail extends BaseQrContent implements QrContent {
+	private static class QrContentMail extends BaseQrContent {
 		private Context mContext;
 
 		public QrContentMail(Context ctx, String s) {
@@ -505,11 +505,84 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_email);
 		}
+
+		public static boolean match(String s) {
+			return (s.startsWith("mailto:"));
+		}
 	}
 
 	/* ----------------------- QR type: url --------------------- */
-	private class QrContentUrl extends BaseQrContent implements QrContent {
+	private static class QrContentUrl extends BaseQrContent {
 		private Context mContext;
+
+		private final static String URL_REGEX = "((https?|ftp)\\:\\/\\/)?" + // SCHEME
+			"([a-z0-9+!*(),;?&=\\$_.-]+(\\:[a-z0-9+!*(),;?&=\\$_.-]+)?@)?" + // User and Pass
+			"([a-z0-9-.]*)\\.([a-z]{2,3})" + // Host or IP
+			"(\\:[0-9]{2,5})?" + // Port
+			"(\\/([a-z0-9+\\$_-]\\.?)+)*\\/?" + // Path
+			"(\\?[a-z+&\\$_.-][a-z0-9;:@&%=+\\/\\$_.-]*)?" + // GET Query
+			"(#[a-z_.-][a-z0-9+\\$_.-]*)?"; // Anchor
+
+		public static final String TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL =
+			"(?:"
+			+ "(?:aero|arpa|asia|a[cdefgilmnoqrstuwxz])"
+			+ "|(?:biz|b[abdefghijmnorstvwyz])"
+			+ "|(?:cat|com|coop|c[acdfghiklmnoruvxyz])"
+			+ "|d[ejkmoz]"
+			+ "|(?:edu|e[cegrstu])"
+			+ "|f[ijkmor]"
+			+ "|(?:gov|g[abdefghilmnpqrstuwy])"
+			+ "|h[kmnrtu]"
+			+ "|(?:info|int|i[delmnoqrst])"
+			+ "|(?:jobs|j[emop])"
+			+ "|k[eghimnprwyz]"
+			+ "|l[abcikrstuvy]"
+			+ "|(?:mil|mobi|museum|m[acdeghklmnopqrstuvwxyz])"
+			+ "|(?:name|net|n[acefgilopruz])"
+			+ "|(?:org|om)"
+			+ "|(?:pro|p[aefghklmnrstwy])"
+			+ "|qa"
+			+ "|r[eosuw]"
+			+ "|s[abcdeghijklmnortuvyz]"
+			+ "|(?:tel|travel|t[cdfghjklmnoprtvwz])"
+			+ "|u[agksyz]"
+			+ "|v[aceginu]"
+			+ "|w[fs]"
+			+ "|(?:xn\\-\\-0zwm56d|xn\\-\\-11b5bs3a9aj6g|xn\\-\\-80akhbyknj4f|xn\\-\\-9t4b11yi5a|xn\\-\\-deba0ad|xn\\-\\-g6w251d|xn\\-\\-hgbk6aj7f53bba|xn\\-\\-hlcj6aya9esc7a|xn\\-\\-jxalpdlp|xn\\-\\-kgbechtv|xn\\-\\-zckzah)"
+			+ "|y[etu]"
+			+ "|z[amw]))";
+
+		/**
+		 * Good characters for Internationalized Resource Identifiers (IRI).
+		 * This comprises most common used Unicode characters allowed in IRI
+		 * as detailed in RFC 3987.
+		 * Specifically, those two byte Unicode characters are not included.
+		 */
+		public static final String GOOD_IRI_CHAR =
+			"a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF";
+
+		/**
+		 *  Regular expression pattern to match most part of RFC 3987
+		 *  Internationalized URLs, aka IRIs.  Commonly used Unicode characters are
+		 *  added.
+		 */
+		public static final Pattern WEB_URL = Pattern.compile(
+			"((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
+			+ "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
+			+ "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
+			+ "((?:(?:[" + GOOD_IRI_CHAR + "][" + GOOD_IRI_CHAR + "\\-]{0,64}\\.)+"   // named host
+			+ TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL
+			+ "|(?:(?:25[0-5]|2[0-4]" // or ip address
+			+ "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(?:25[0-5]|2[0-4][0-9]"
+			+ "|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1]"
+			+ "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
+			+ "|[1-9][0-9]|[0-9])))"
+			+ "(?:\\:\\d{1,5})?)" // plus option port number
+			+ "(\\/(?:(?:[" + GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~"  // plus option query params
+			+ "\\-\\.\\+\\!\\*\\'\\(\\)\\,\\_])|(?:\\%[a-fA-F0-9]{2}))*)?"
+			+ "(?:\\b|$)"); // and finally, a word boundary or end of
+							// input.  This is to stop foo.sure from
+							// matching as foo.su
 
 		public QrContentUrl(Context ctx, String s) {
 			mContext = ctx;
@@ -518,6 +591,10 @@ public class QrParser {
 		}
 
 		public void launch() {
+			if (!mContent.startsWith("http:") &&
+				!mContent.startsWith("https:") &&
+				!mContent.startsWith("ftp:")) { mContent = "http://" + mContent; }
+
 			Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContent));
 			mContext.startActivity(intent);
 		}
@@ -528,6 +605,13 @@ public class QrParser {
 
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_url);
+		}
+
+		public static boolean match(String s) {
+			//Pattern pattern = Pattern.compile(URL_REGEX);
+			//Matcher matcher = pattern.matcher(s);
+			Matcher matcher = WEB_URL.matcher(s);
+			return matcher.matches();
 		}
 	}
 

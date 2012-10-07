@@ -22,31 +22,24 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Button;
 
-import android.hardware.Camera;
 import android.net.Uri;
-import android.util.Log;
 
-public class ObsqrActivity extends Activity 
-	implements Camera.PreviewCallback, Camera.AutoFocusCallback {
+import android.util.Log;
+import android.widget.Toast;
+
+public class ObsqrActivity extends Activity implements CameraPreview.OnQrDecodedListener { 
+	//implements Camera.PreviewCallback, Camera.AutoFocusCallback {
 
 	private final static String tag = "ObsqrActivity";
 	/* Don't perceive click events on mTextContainer till 3 sec run out */
 	private final static int DURATION_OF_KEEPING_TEXT_ON = 3000; 
-	/* It'll be 2 sec between two autoFocus() calls */
-	private final static int AUTOFOCUS_FREQUENCY = 2000;
 	/* Shared preferences title */
 	private final static String PREFS_NAME = "ObsqrSharedPreferences";
 
 	private QrParser mParser;
 	private QrParser.QrContent mQrContent;
 
-	private Preview mPreview;
-
-	private Zbar zbar = new Zbar();
-
-	private Camera mCamera;
-	private Camera.Parameters mParams = null;	
-	private boolean mFocusModeOn;
+	private CameraPreview mCameraPreview;
 
 	private LinearLayout mTextContainer;
 	private TextView mQrTitleView;
@@ -61,17 +54,6 @@ public class ObsqrActivity extends Activity
 		}
 	};
 
-	private Handler mAutoFocusHandler = new Handler();
-	private Runnable mAutoFocusRunnable = new Runnable() {
-		@Override
-		public void run() {
-			mFocusModeOn = true;
-			if (mCamera != null) {
-				mCamera.autoFocus(ObsqrActivity.this);
-			}
-		}
-	};
-
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -83,7 +65,8 @@ public class ObsqrActivity extends Activity
 		mParser = QrParser.getInstance();
 		mParser.setContext(this);
 
-		mPreview = (Preview) findViewById(R.id.surface);
+		mCameraPreview = (CameraPreview) findViewById(R.id.surface);
+		mCameraPreview.setOnQrDecodedListener(this);
 		// Decoded qr content will be shown in textview
 		mTextContainer = (LinearLayout) findViewById(R.id.l_text_container);
 		mQrTitleView = (TextView) findViewById(R.id.tv_title);
@@ -99,9 +82,15 @@ public class ObsqrActivity extends Activity
 					// messenger - for qr code containing sms,
 					// browser - for qr code containing url,
 					// maps - for qr code containing geolocation, etc...
-					if (mQrContent != null) mQrContent.launch();	
-					// and hide textview 
-					mTextContainer.setVisibility(View.INVISIBLE);
+					try {
+						if (mQrContent != null) mQrContent.launch();	
+						// and hide textview 
+						mTextContainer.setVisibility(View.INVISIBLE);
+					} catch (android.content.ActivityNotFoundException e) {
+						Toast.makeText(ObsqrActivity.this, ObsqrActivity.this
+							.getString(R.string.alert_msg_activity_not_found),
+							Toast.LENGTH_LONG).show();
+					}
 				}
 				return true;
 			}
@@ -112,26 +101,46 @@ public class ObsqrActivity extends Activity
 			@Override
 			public boolean onKey(View v, int keyCode, KeyEvent event) {
 				if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
-					if (mQrContent != null) mQrContent.launch();	
-					mTextContainer.setVisibility(View.INVISIBLE);
+					try {
+						if (mQrContent != null) mQrContent.launch();	
+						mTextContainer.setVisibility(View.INVISIBLE);
+					} catch (android.content.ActivityNotFoundException e) {
+						Toast.makeText(ObsqrActivity.this, ObsqrActivity.this
+							.getString(R.string.alert_msg_activity_not_found),
+							Toast.LENGTH_LONG).show();
+					}
 				}
 				return true;
 			}
 		}); 
 	}
 
+	public void onQrDecoded(String s) {
+		mKeepTextOnScreenHandler.removeCallbacks(mTextVisibleRunnable);
+		mQrContent = mParser.parse(s);
+		// Show textview with qr content
+		mTextContainer.setVisibility(View.VISIBLE);
+		mQrContentView.setText(mQrContent.toString());
+		mQrTitleView.setText(mQrContent.getTitle());
+		mHelpView.setText(mQrContent.getActionName());
+		// Keep textview on screen 3 sec and hide it
+		mKeepTextOnScreenHandler.postDelayed(mTextVisibleRunnable, 
+				DURATION_OF_KEEPING_TEXT_ON);
+	}
+
 	@Override
 	protected void onResume() {
 		super.onResume();
 		Log.d(tag, "onResume()");
-		mPreview.requestFocus();
-
-		mCamera = openCamera();
-		if (mCamera == null) {
+		
+		boolean success = mCameraPreview.acquireCamera(getWindowManager()
+				.getDefaultDisplay().getRotation());
+		if (!success) {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setMessage("Are you sure you want to exit?")
+			builder.setMessage(getResources().getString(R.string.dlg_alert_msg))
 				.setCancelable(false)
-				.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+				.setPositiveButton(getResources().getString(R.string.dlg_alert_ok_btn_caption),
+						new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
 						ObsqrActivity.this.finish();
 						dialog.dismiss();
@@ -141,26 +150,16 @@ public class ObsqrActivity extends Activity
 			alert.show();
 			return;
 		}
-
-		mCamera.setPreviewCallback(this);
-		mPreview.setCamera(mCamera);
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		Log.d(tag, "onPause()");
-		// Kill all the other threads that were created for periodic operations
-		if (mCamera != null) {
-			mPreview.setCamera(null);
-			mCamera.setPreviewCallback(null);
-			mCamera.release();
-			mCamera = null;
-		}
 
 		mKeepTextOnScreenHandler.removeCallbacks(mTextVisibleRunnable);	
-		mAutoFocusHandler.removeCallbacks(mAutoFocusRunnable);
 		mTextContainer.setVisibility(View.INVISIBLE);
+		mCameraPreview.releaseCamera();
 	}
 
 	@Override
@@ -220,60 +219,4 @@ public class ObsqrActivity extends Activity
 		editor.commit();
 	}
 
-	private Camera openCamera() {
-		Camera camera = Camera.open();
-
-		if (camera == null) {
-			final int sdkVersion = Integer.parseInt(Build.VERSION.SDK);
-			if (sdkVersion >= Build.VERSION_CODES.GINGERBREAD) {
-				int cameraCount = Camera.getNumberOfCameras();
-				for (int camIdx = 0; camIdx < cameraCount; camIdx++) {
-					if (camera != null) break;
-					try {
-						camera = Camera.open(camIdx);
-					} catch (RuntimeException e) {
-						Log.d(tag, "Camera failed to open: " + e.toString());
-					}
-				}
-			}
-			else return null; 
-		}
-
-		return camera; 
-	}
-
-	/* ---------------------- PreviewCallback --------------------- */
-	public void onPreviewFrame(byte[] data, Camera camera) {
-		if (mFocusModeOn) return;
-		if (mParams == null) {
-			mParams = mCamera.getParameters();
-		}
-		mCamera.setPreviewCallback(null);
-		int width = mParams.getPreviewSize().width;  
-		int height = mParams.getPreviewSize().height;
-		// Get decoded string
-		String s = zbar.process(width, height, data);
-		if (s != null) {
-			Log.d(tag, "============= URL: " + s + " =================");
-			mKeepTextOnScreenHandler.removeCallbacks(mTextVisibleRunnable);
-			mQrContent = mParser.parse(s);
-			// Show textview with qr content
-			mTextContainer.setVisibility(View.VISIBLE);
-			mQrContentView.setText(mQrContent.toString());
-			mQrTitleView.setText(mQrContent.getTitle());
-			mHelpView.setText(mQrContent.getActionName());
-			// Keep textview on screen 3 sec and hide it
-			mKeepTextOnScreenHandler.postDelayed(mTextVisibleRunnable, 
-					DURATION_OF_KEEPING_TEXT_ON);
-		}
-		mCamera.setPreviewCallback(this);
-	}
-
-	/* ---------------------- AutoFocusCallback --------------------- */
-	@Override
-	public void onAutoFocus(boolean success, Camera camera) {
-		Log.d(tag, "onAutoFocus()");
-		mAutoFocusHandler.postDelayed(mAutoFocusRunnable, AUTOFOCUS_FREQUENCY);
-		mFocusModeOn = false;
-	}
 }
