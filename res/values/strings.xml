@@ -5,17 +5,18 @@
 	<!-- Help prompts -->
     <string name="help_prompt_text">Tap to copy text to the clipboard</string>
     <string name="help_prompt_contact">Tap to view the contact</string>
-    <string name="help_prompt_market">Tap to open the app on Google Play</string>
+    <string name="help_prompt_market">Tap to open the app on Market</string>
     <string name="help_prompt_phone">Tap to open dialer</string>
     <string name="help_prompt_geo">Tap to view the location</string>
     <string name="help_prompt_sms">Tap to send a message</string>
     <string name="help_prompt_email">Tap to send an e-mail</string>
     <string name="help_prompt_url">Tap to follow the link</string>
+    <string name="help_prompt_vcard">Tap to add the contact</string>
 
 	<!-- QR types -->
     <string name="text_qr_type_name">Plain text</string>
     <string name="contact_qr_type_name">Contact information</string>
-    <string name="market_qr_type_name">Application on Google Play</string>
+    <string name="market_qr_type_name">Application on Market</string>
     <string name="phone_qr_type_name">Phone number</string>
     <string name="geo_qr_type_name">Geolocation</string>
     <string name="sms_qr_type_name">SMS</string>
@@ -33,8 +34,6 @@
     <string name="contact_qr_address_title">Address:</string>
     <string name="contact_qr_email_title">Email:</string>
     <string name="contact_qr_company_title">Company:</string>
-    <string name="contact_qr_role_title">Role:</string>
-    <string name="contact_qr_title_title">Title:</string>
 
 	<!-- Geolocation -->
     <string name="geo_qr_title_title">Title:</string>
@@ -54,14 +53,14 @@
 	<!-- Email -->
     <string name="email_qr_send_dlg_title">Sent mail via...</string>
 
-    <string name="dlg_tv_question">If you really love this app please give your feedback on Google Play</string>
+	<!-- Dialogs and alerts -->
+    <string name="dlg_tv_question">If you really love this app please give your feedback on Market</string>
     <string name="dlg_btn_ignore_caption">Ignore</string>
     <string name="dlg_btn_rate_caption">Rate</string>
 
     <string name="dlg_alert_msg">Failed to open any camera</string>
     <string name="dlg_alert_ok_btn_caption">Ok</string>
-        
-    <string name="toast_msg_added_to"> was added to </string>    
-    <string name="alert_msg_invalid_market_link">Failed to open Google Play</string>
 
+    <string name="alert_msg_invalid_market_link">Failed to open Google Play</string>
+    <string name="alert_msg_activity_not_found">No application found</string>
 </resources>
