@@ -110,6 +110,7 @@ public class QrParser {
 			return true;
 		}
 	}
+	
 	/* ----------------------- QR type: vCard 2.1 contact information --------------------- */
 	private static class QrContentvCard extends BaseQrContent {
 		private Context mContext;
