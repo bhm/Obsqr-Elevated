@@ -2,6 +2,11 @@
 
 obsqr is a fast and lightweight QR scanner application for Android.
 
+### Changes from 2.5
+
+* Updates from original.
+* Initial changes to lower the permssions and start Escalated version
+
 ### Changes from 2.4
 
 * minSdkVersion escalated to 5
