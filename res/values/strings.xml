@@ -34,6 +34,8 @@
     <string name="contact_qr_address_title">Address:</string>
     <string name="contact_qr_email_title">Email:</string>
     <string name="contact_qr_company_title">Company:</string>
+    <string name="toast_msg_added_to">Added in</string>
+    <string name="choose_account">Choose an account</string>
 
 	<!-- Geolocation -->
     <string name="geo_qr_title_title">Title:</string>
