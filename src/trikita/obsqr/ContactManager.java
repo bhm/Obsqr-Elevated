@@ -43,6 +43,9 @@ public class ContactManager {
 	public boolean showDialog() {
 		AccountManager accountManager = AccountManager.get(context);
 		Account[] accounts = accountManager.getAccountsByType(null);
+		/*
+		 * TODO Retrive proper account types for contacts!
+		 */
 		final String[] accountNames = new String[accounts.length];
 		final String[] accountTypes = new String[accounts.length];
 		int _i = 0;
