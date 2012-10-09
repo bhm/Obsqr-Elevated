@@ -2,8 +2,9 @@
 
 ##Branches
 
-###Obsqr Elevated makes use of android permissions to read and write contacts. Now you only need two taps to automatically add a contact form a QR code.
-Elevated version is within another branch. 
+###Obsqr Elevated
+Elevated version makes use of android permissions to read and write contacts. Now you only need two taps to automatically add a contact form a QR code.
+
 ###Master branch
 Master is being kept as close as to original that is being developed by Trikita.
 Obsqr Master branch should stay as close to updates as possible over at this repo.
