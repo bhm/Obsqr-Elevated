@@ -59,7 +59,7 @@ public class ContactManager {
 		}
 		final ArrayList<ContentProviderOperation> contact = new ArrayList<ContentProviderOperation>();
 		AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-		dialog.setTitle(context.getResources().getString(R.string.choose_account));
+		dialog.setTitle(context.getResources().getString(R.string.dlg_choose_account));
 		dialog.setItems(accountNames,  new DialogInterface.OnClickListener() {			
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -69,7 +69,7 @@ public class ContactManager {
 					Log.d(tag, "Added :" + contact.toString());
 					Toast.makeText(context,  	card.Name 
 												+ " "
-												+ context.getResources().getString(R.string.toast_msg_added_to)
+												+ context.getResources().getString(R.string.alert_msg_contact_added_to)
 												+ " " 
 												+ accountNames[which],
 												Toast.LENGTH_LONG).show();
@@ -97,11 +97,12 @@ public class ContactManager {
 		addRoles(contact, card.Roles);
 		addTitles(contact, card.Titles);
 		addNotes(contact, card.Notes);
+		addWebsite(contact, card.URLs);
 		return true;
 	}
 	
 	private boolean setupContact(ArrayList<ContentProviderOperation> contact, String type, String name) {
-		contact.add(ContentProviderOperation.newUpdate(RawContacts.CONTENT_URI)
+		contact.add(ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
 				.withValue(RawContacts.ACCOUNT_TYPE, type)
 				.withValue(RawContacts.ACCOUNT_NAME, name).build());
 		return false;
@@ -137,7 +138,22 @@ public class ContactManager {
 		return true;
 	}
 	
-	public boolean addName(ArrayList<ContentProviderOperation> contact, String value) {
+	private boolean addWebsite(ArrayList<ContentProviderOperation> contact, ArrayList<String> websites) {
+		if (!websites.isEmpty()) {
+			Iterator<String> iterator = websites.iterator();
+			while(iterator.hasNext()){
+				String website = iterator.next();
+				contact.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
+						.withValueBackReference(Data.RAW_CONTACT_ID, 0)
+						.withValue(Data.MIMETYPE, ContactsContract.CommonDataKinds.Website.CONTENT_ITEM_TYPE)
+						.withValue(CommonDataKinds.Website.URL, website)
+						.build());
+			}
+		}
+		return true;
+	}
+	
+	private boolean addName(ArrayList<ContentProviderOperation> contact, String value) {
 		if (!value.equals(null)){			
 			contact.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
 	                .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, 0)

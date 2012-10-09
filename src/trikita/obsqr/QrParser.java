@@ -9,9 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.ContactsContract;
-import android.provider.ContactsContract.CommonDataKinds;
-import android.provider.ContactsContract.CommonDataKinds.Phone;
-import android.provider.ContactsContract.Intents.Insert;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -76,6 +73,8 @@ public class QrParser {
 			return new QrContentContact(mContext, s);
 		} else if (QrContentvCard.match(s)) {
 			return new QrContentvCard(mContext, s);
+		} else if (QrContentWiFi.match(s)){
+			return new QrContentWiFi(mContext, s);
 		} else {
 			return new QrContentText(mContext, s);
 		}
@@ -110,6 +109,73 @@ public class QrParser {
 			return true;
 		}
 	}
+	/* ----------------------- QR type:WiFi --------------------- */
+	private static class QrContentWiFi extends BaseQrContent {
+		private String Raw;
+		private Context context;
+		private WiFi manager;
+		private String ENCRYPTION;
+		private String SSID;
+		private String PASS;
+		private boolean hidden;
+
+		public QrContentWiFi(Context mContext, String s) {
+			Raw = s;
+			context = mContext;
+			mTitle = context.getResources().getString(R.string.wifi_qr_type_name);
+		}
+		private void parse(String raw) {
+			/*
+			 * WIFI:S:$SSID;T:$ENCRYPTION;P:$PASSWORD;H:$HIDDEN; 
+			 */
+			String info = raw.substring(5);
+			String[] rows = info.split(";");		
+			for (String _r : rows) {
+				if (_r.startsWith("S:"))
+					SSID = _r.split(":")[1];
+				if (_r.startsWith("H:"))
+					hidden = (_r.split(":")[1].equalsIgnoreCase("true")) ? true : false;
+				if (_r.startsWith("T:")) {
+					ENCRYPTION = _r.split(":")[1];
+					if (ENCRYPTION.equalsIgnoreCase(WiFi.Encryption.NONE.value)) {
+						PASS = "";
+					}
+				}
+				if (_r.startsWith("P:"))
+					PASS = _r.split(":")[1];
+							
+			}
+			Log.v(tag, "SSID: " + SSID + "\nPASS: " + PASS + "\nENCRYPTION: " + ENCRYPTION + "\nHidden: " + String.valueOf(hidden));
+		}		
+
+		@Override
+		public void launch() throws ActivityNotFoundException {
+			manager = new WiFi(context, SSID, PASS, ENCRYPTION, hidden);
+			manager.enable();	
+			Intent startMain = new Intent(Intent.ACTION_MAIN);
+			startMain.addCategory(Intent.CATEGORY_HOME);
+			startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			context.startActivity(startMain);
+		}		
+		
+		public String toString() {
+			parse(Raw);
+			StringBuilder res = new StringBuilder();
+			String text = context.getResources().getString(R.string.wifi_qr_network_name);
+			res.append(text + " " + SSID);
+			return res.toString();
+		}
+
+		@Override
+		public String getActionName() {			
+			return context.getResources().getString(R.string.help_prompt_wifi);
+		}
+		
+		public static boolean match(String s) {
+			return (s.startsWith("WIFI:"));
+		}
+	}
+	
 	
 	/* ----------------------- QR type: vCard 2.1 contact information --------------------- */
 	private static class QrContentvCard extends BaseQrContent {
@@ -120,12 +186,10 @@ public class QrParser {
 		
 		private String mName;
 		private String mPhone;	
-		private int mPhone_type;
 		private String mAddress;
-		private int mAddress_type;
 		private String mEmail;
-		private int mEmail_type;
 		private String mCompany;
+		private String URL;
 
 		
 		public QrContentvCard(Context context, String s) {
@@ -137,39 +201,18 @@ public class QrParser {
 		
 		@Override
 		public void launch() {			
-			Intent intent = new Intent(Intent.ACTION_INSERT);
-			intent.setType(ContactsContract.Contacts.CONTENT_TYPE);
-			if (mName != null) {
-				intent.putExtra(ContactsContract.Intents.Insert.NAME, mName);
-			}
-			if (mPhone != null) {
-				intent.putExtra(ContactsContract.Intents.Insert.PHONE, mPhone);
-				intent.putExtra(Insert.PHONE_TYPE, mPhone_type);
-			}
-			if (mAddress != null) {
-				intent.putExtra(ContactsContract.Intents.Insert.POSTAL, mAddress);
-				intent.putExtra(Insert.POSTAL_TYPE, mAddress_type);
-			}
-			if (mEmail != null) {
-				intent.putExtra(ContactsContract.Intents.Insert.EMAIL, mEmail);
-				intent.putExtra(Insert.EMAIL_TYPE, mEmail_type);
-			}
-			if (mCompany != null) {
-				intent.putExtra(ContactsContract.Intents.Insert.COMPANY, mCompany);
-			}			
-			mContext.startActivity(intent);
+			ContactManager manager = new ContactManager(mContext, card);
+			manager.showDialog();
 		}
 		
 		private void parse() {
 			card = parser.parseContents(RawContent);
 			mName = card.Name;
-			mAddress = card.first(card.Addresses);
-			if (card.type(card.Addresses, mAddress) != -1) { mAddress_type = card.type(card.Addresses, mAddress);} 
-			mPhone = card.first(card.Phones);
-			if (card.type(card.Phones, mPhone) != -1) { mPhone_type = card.type(card.Phones, mPhone);}			
+			mAddress = card.first(card.Addresses);			
+			mPhone = card.first(card.Phones);		
 			mEmail = card.first(card.Emails);
-			if (card.type(card.Emails, mEmail) != -1) { mEmail_type = card.type(card.Emails, mEmail);} 
 			mCompany = card.first(card.Organizations);
+			URL = card.first(card.URLs);
 		}
 		
 		public String toString() {
@@ -196,12 +239,16 @@ public class QrParser {
 				text = mContext.getResources().getString(R.string.contact_qr_company_title);
 				res.append(text + " " + mCompany);
 			}
+			if (URL != null) {
+				text = mContext.getResources().getString(R.string.contact_qr_address_url);
+				res.append(text + " " + URL);
+			}
 			return res.toString();
 		}
 
 		@Override
 		public String getActionName() {
-			return mContext.getResources().getString(R.string.help_prompt_vcard);
+			return mContext.getResources().getString(R.string.help_prompt_contact);
 		}
 		
 		public static boolean match(String s) {

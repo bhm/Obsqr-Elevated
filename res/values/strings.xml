@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Obsqr</string>
+    <string name="app_name">Obsqr Elevated</string>
 	
 	<!-- Help prompts -->
     <string name="help_prompt_text">Tap to copy text to the clipboard</string>
@@ -12,6 +12,7 @@
     <string name="help_prompt_email">Tap to send an e-mail</string>
     <string name="help_prompt_url">Tap to follow the link</string>
     <string name="help_prompt_vcard">Tap to add the contact</string>
+    <string name="help_prompt_wifi">Tap to connect a WiFi</string>
 
 	<!-- QR types -->
     <string name="text_qr_type_name">Plain text</string>
@@ -22,6 +23,7 @@
     <string name="sms_qr_type_name">SMS</string>
     <string name="email_qr_type_name">Email</string>
     <string name="url_qr_type_name">URL</string>
+    <string name="wifi_qr_type_name">Wireless Network</string>
 
 	<string name="unsupported_data_text">Unsupported data type</string>
 
@@ -34,8 +36,7 @@
     <string name="contact_qr_address_title">Address:</string>
     <string name="contact_qr_email_title">Email:</string>
     <string name="contact_qr_company_title">Company:</string>
-    <string name="toast_msg_added_to">Added in</string>
-    <string name="choose_account">Choose an account</string>
+    <string name="contact_qr_address_url">Website:</string>   
 
 	<!-- Geolocation -->
     <string name="geo_qr_title_title">Title:</string>
@@ -54,15 +55,25 @@
 
 	<!-- Email -->
     <string name="email_qr_send_dlg_title">Sent mail via...</string>
+    
+    <!-- WiFi -->
+    <string name="wifi_qr_network_name">Network:</string>
 
 	<!-- Dialogs and alerts -->
     <string name="dlg_tv_question">If you really love this app please give your feedback on Market</string>
     <string name="dlg_btn_ignore_caption">Ignore</string>
-    <string name="dlg_btn_rate_caption">Rate</string>
+    <string name="dlg_btn_rate_caption">Rate</string>    
+    
+    <string name="dlg_choose_account">Choose an account</string>
 
     <string name="dlg_alert_msg">Failed to open any camera</string>
     <string name="dlg_alert_ok_btn_caption">Ok</string>
 
     <string name="alert_msg_invalid_market_link">Failed to open Google Play</string>
+    <string name="alert_wifi_msg_connecting">Connecting to</string>
+    <string name="alert_wifi_msg_enabling_failed">Failed to connect to</string>
+    <string name="alert_wifi_msg_failed_adding">Failed while adding network</string>
+    
+  	<string name="alert_msg_contact_added_to">added in</string>  
     <string name="alert_msg_activity_not_found">No application found</string>
 </resources>

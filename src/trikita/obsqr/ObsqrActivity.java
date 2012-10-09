@@ -127,7 +127,7 @@ public class ObsqrActivity extends Activity implements CameraPreview.OnQrDecoded
 		mKeepTextOnScreenHandler.postDelayed(mTextVisibleRunnable, 
 				DURATION_OF_KEEPING_TEXT_ON);
 	}
-
+	
 	@Override
 	protected void onResume() {
 		super.onResume();

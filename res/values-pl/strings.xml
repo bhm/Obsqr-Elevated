@@ -12,6 +12,7 @@
     <string name="help_prompt_email">Stuknij by wysłać e-mail</string>
     <string name="help_prompt_url">Stuknij by otworzyć lącze</string>
     <string name="help_prompt_vcard">Stuknij by dodać kontakt</string>
+    <string name="help_prompt_wifi">Stuknij by połączyć się z siecią WiFi</string>   
 
 	<!-- QR types -->
     <string name="text_qr_type_name">Zwykły tekst</string>
@@ -22,6 +23,7 @@
     <string name="sms_qr_type_name">SMS</string>
     <string name="email_qr_type_name">Email</string>
     <string name="url_qr_type_name">Łącze</string>
+    <string name="wifi_qr_type_name">Sieć WiFi</string>
 
 	<string name="unsupported_data_text">Brak wsparcia dla typu danych</string>
 
@@ -35,7 +37,7 @@
     <string name="contact_qr_email_title">Email:</string>
     <string name="contact_qr_company_title">Firma:</string>
     <string name="toast_msg_added_to">Dodany dla </string>
-    <string name="choose_account">Wybierz konto</string>
+    
 
 	<!-- Geolocation -->
     <string name="geo_qr_title_title">Miejsce:</string>
@@ -63,7 +65,12 @@
 
     <string name="dlg_alert_msg">Nie udało się znależć kamery</string>
     <string name="dlg_alert_ok_btn_caption">Ok</string>
+    <string name="dlg_choose_account">Wybież konto</string>
 
+    <string name="alert_wifi_msg_connecting">Connecting to</string>
+    <string name="alert_wifi_msg_enabling_failed">Failed to connect to</string>
+    <string name="alert_wifi_msg_failed_adding">Failed while adding network</string>
     <string name="alert_msg_invalid_market_link">Nie udało się otworzyć Sklepu Play</string>
-    <string name="alert_msg_activity_not_found">Nie znalazłem aplikacji</string>
+    <string name="alert_msg_contact_added_to">dodano w</string>   
+    <string name="alert_msg_activity_not_found">Nie znalazłem odpowiedniej aplikacji</string>
 </resources>
