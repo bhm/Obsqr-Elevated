@@ -1,4 +1,4 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 import android.view.View;
 import android.view.ViewGroup;

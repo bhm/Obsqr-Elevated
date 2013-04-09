@@ -1,8 +1,7 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;

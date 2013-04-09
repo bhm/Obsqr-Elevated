@@ -1,4 +1,4 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 import android.os.Build;
 import android.content.Context;

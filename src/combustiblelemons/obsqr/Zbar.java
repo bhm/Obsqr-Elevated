@@ -1,4 +1,4 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 /* This class provides a wrapper for launching zbar library function
  * that implements qr code recognition

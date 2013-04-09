@@ -1,30 +1,23 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.app.AlertDialog;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Build;
-
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.DialogInterface;
-
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-
-import android.view.MotionEvent;
-import android.view.KeyEvent;
-
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Button;
-
-import android.net.Uri;
-
-import android.util.Log;
 import android.widget.Toast;
 
 public class ObsqrActivity extends Activity implements CameraPreview.OnQrDecodedListener { 
@@ -187,7 +180,7 @@ public class ObsqrActivity extends Activity implements CameraPreview.OnQrDecoded
 			@Override 
 			public void onClick(View v) {
 				Intent intent = new Intent(Intent.ACTION_VIEW, 
-						Uri.parse("market://details?id=trikita.obsqr"));
+						Uri.parse("market://details?id=combustiblelemons.obsqr"));
 				ObsqrActivity.this.startActivity(intent);
 				dialog.dismiss();
 				ObsqrActivity.super.onBackPressed();

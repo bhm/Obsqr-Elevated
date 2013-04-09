@@ -1,4 +1,4 @@
-package trikita.obsqr;
+package combustiblelemons.obsqr;
 
 import java.util.ArrayList;
 import java.util.HashMap;

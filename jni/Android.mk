@@ -41,7 +41,7 @@ LOCAL_SRC_FILES := convert.c decoder.c error.c image.c img_scanner.c \
 	qrcode/rs.c qrcode/util.c \
 	\
 	processor/null.c video/null.c window/null.c decoder/qr_finder.c \
-	trikita_zbar.c
+	combustiblelemons_zbar.c
 	
 LOCAL_CFLAGS := -I$(LOCAL_PATH) -I$(LOCAL_PATH)/$(LIBICONV)
 LOCAL_LDLIBS := -llog
