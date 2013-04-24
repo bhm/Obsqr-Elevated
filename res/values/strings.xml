@@ -12,7 +12,7 @@
     <string name="help_prompt_email">Tap to send an e-mail</string>
     <string name="help_prompt_url">Tap to follow the link</string>
     <string name="help_prompt_vcard">Tap to add the contact</string>
-    <string name="help_prompt_wifi">Tap to connect a WiFi</string>
+    <string name="help_prompt_wifi">Tap to connect to a WiFi</string>
 
 	<!-- QR types -->
     <string name="text_qr_type_name">Plain text</string>
@@ -54,10 +54,11 @@
     <string name="sms_qr_message_title">Text:</string>
 
 	<!-- Email -->
-    <string name="email_qr_send_dlg_title">Sent mail via...</string>
+    <string name="email_qr_send_dlg_title">Sent mail via&#8230;</string>
     
     <!-- WiFi -->
     <string name="wifi_qr_network_name">Network:</string>
+    <string name="wifi_qr_nopass_for_secured_network">\WEP or WPA connection requires a password!</string>
 
 	<!-- Dialogs and alerts -->
     <string name="dlg_tv_question">If you really love this app please give your feedback on Market</string>

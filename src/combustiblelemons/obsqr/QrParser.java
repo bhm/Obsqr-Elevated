@@ -26,8 +26,11 @@ public class QrParser {
 
 	public interface QrContent {
 		public void launch() throws android.content.ActivityNotFoundException;
+
 		public String toString();
+
 		public String getTitle();
+
 		public String getActionName();
 	}
 
@@ -40,7 +43,8 @@ public class QrParser {
 		}
 	}
 
-	private QrParser() { }
+	private QrParser() {
+	}
 
 	public static QrParser getInstance() {
 		if (mInstance == null) {
@@ -72,7 +76,7 @@ public class QrParser {
 			return new QrContentContact(mContext, s);
 		} else if (QrContentvCard.match(s)) {
 			return new QrContentvCard(mContext, s);
-		} else if (QrContentWiFi.match(s)){
+		} else if (QrContentWiFi.match(s)) {
 			return new QrContentWiFi(mContext, s);
 		} else {
 			return new QrContentText(mContext, s);
@@ -101,124 +105,137 @@ public class QrParser {
 		}
 
 		public String getActionName() {
-			return mContext.getResources().getString(R.string.help_prompt_text); 
+			return mContext.getResources().getString(R.string.help_prompt_text);
 		}
 
 		public static boolean match(String s) {
 			return true;
 		}
 	}
+
 	/* ----------------------- QR type:WiFi --------------------- */
 	private static class QrContentWiFi extends BaseQrContent {
 		private String Raw;
 		private Context context;
 		private WiFi manager;
-		private String ENCRYPTION;
-		private String SSID;
-		private String PASS;
-		private boolean hidden;
+		private String ENCRYPTION = "";
+		private String SSID = "";
+		private String PASS = "";
+		private boolean hidden = false;
 
 		public QrContentWiFi(Context mContext, String s) {
 			Raw = s;
 			context = mContext;
 			mTitle = context.getResources().getString(R.string.wifi_qr_type_name);
 		}
+
 		private void parse(String raw) {
 			/*
-			 * WIFI:S:$SSID;T:$ENCRYPTION;P:$PASSWORD;H:$HIDDEN; 
+			 * WIFI:S:$SSID;T:$ENCRYPTION;P:$PASSWORD;H:$HIDDEN;
 			 */
 			String info = raw.substring(5);
-			String[] rows = info.split(";");		
-			for (String _r : rows) {
-				if (_r.startsWith("S:"))
-					SSID = _r.split(":")[1];
-				if (_r.startsWith("H:"))
-					hidden = (_r.split(":")[1].equalsIgnoreCase("true")) ? true : false;
-				if (_r.startsWith("T:")) {
-					ENCRYPTION = _r.split(":")[1];
-					if (ENCRYPTION.equalsIgnoreCase(WiFi.Encryption.NONE.value)) {
-						PASS = "";
+			String[] rows = info.split(";");
+			for (String row : rows) {
+				if (row.split(":").length > 1) {
+					String[] tags = row.split(":");
+					String property = tags[0];
+					String value = tags[1];
+					if (property.equalsIgnoreCase("S")) {
+						SSID = value;
+					} else if (property.equalsIgnoreCase("P")) {
+						PASS = value;
+					} else if (property.equalsIgnoreCase("H")) {
+						hidden = Boolean.valueOf(value);
+					} else if (property.equalsIgnoreCase("T")) {
+						ENCRYPTION = value;
+						if (ENCRYPTION.equalsIgnoreCase(WiFi.Encryption.NOPASS)) {
+							PASS = "";
+						}
 					}
 				}
-				if (_r.startsWith("P:"))
-					PASS = _r.split(":")[1];
-							
+
 			}
-			Log.v(tag, "SSID: " + SSID + "\nPASS: " + PASS + "\nENCRYPTION: " + ENCRYPTION + "\nHidden: " + String.valueOf(hidden));
-		}		
+			Log.v(tag,
+					"SSID: " + SSID + "\nPASS: " + PASS + "\nENCRYPTION: " + ENCRYPTION + "\nHidden: "
+							+ String.valueOf(hidden));
+		}
 
 		@Override
 		public void launch() throws ActivityNotFoundException {
 			manager = new WiFi(context, SSID, PASS, ENCRYPTION, hidden);
-			manager.enable();	
+			manager.enable();
 			Intent startMain = new Intent(Intent.ACTION_MAIN);
 			startMain.addCategory(Intent.CATEGORY_HOME);
 			startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			context.startActivity(startMain);
-		}		
-		
+		}
+
 		public String toString() {
 			parse(Raw);
 			StringBuilder res = new StringBuilder();
-			String text = context.getResources().getString(R.string.wifi_qr_network_name);
+			String text = context.getString(R.string.wifi_qr_network_name);
 			res.append(text + " " + SSID);
+			if (!ENCRYPTION.equalsIgnoreCase(WiFi.Encryption.NOPASS) && PASS.length() == 0) {
+				res.append(context.getString(R.string.wifi_qr_nopass_for_secured_network));
+			}
 			return res.toString();
 		}
 
 		@Override
-		public String getActionName() {			
+		public String getActionName() {
 			return context.getResources().getString(R.string.help_prompt_wifi);
 		}
-		
+
 		public static boolean match(String s) {
 			return (s.startsWith("WIFI:"));
 		}
 	}
-	
-	
-	/* ----------------------- QR type: vCard 2.1 contact information --------------------- */
+
+	/*
+	 * ----------------------- QR type: vCard 2.1 contact information
+	 * ---------------------
+	 */
 	private static class QrContentvCard extends BaseQrContent {
 		private Context mContext;
 		private VCardParser parser;
 		private String RawContent;
 		private vCard card;
-		
+
 		private String mName;
-		private String mPhone;	
+		private String mPhone;
 		private String mAddress;
 		private String mEmail;
 		private String mCompany;
 		private String URL;
 
-		
 		public QrContentvCard(Context context, String s) {
 			RawContent = s;
 			mContext = context;
 			parser = new VCardParser();
 			mTitle = mContext.getResources().getString(R.string.contact_qr_type_name);
 		}
-		
+
 		@Override
-		public void launch() {			
+		public void launch() {
 			ContactManager manager = new ContactManager(mContext, card);
 			manager.showDialog();
 		}
-		
+
 		private void parse() {
 			card = parser.parseContents(RawContent);
 			mName = card.Name;
-			mAddress = card.first(card.Addresses);			
-			mPhone = card.first(card.Phones);		
+			mAddress = card.first(card.Addresses);
+			mPhone = card.first(card.Phones);
 			mEmail = card.first(card.Emails);
 			mCompany = card.first(card.Organizations);
 			URL = card.first(card.URLs);
 		}
-		
+
 		public String toString() {
-			parse();			
+			parse();
 			StringBuilder res = new StringBuilder();
 			String text;
-			if (mName != null) { 
+			if (mName != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_name_title);
 				res.append(text + " " + card.Name + "\n");
 			}
@@ -234,7 +251,7 @@ public class QrParser {
 				text = mContext.getResources().getString(R.string.contact_qr_email_title);
 				res.append(text + " " + mEmail + "\n");
 			}
-			if (mCompany != null) { 
+			if (mCompany != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_company_title);
 				res.append(text + " " + mCompany);
 			}
@@ -249,15 +266,17 @@ public class QrParser {
 		public String getActionName() {
 			return mContext.getResources().getString(R.string.help_prompt_contact);
 		}
-		
+
 		public static boolean match(String s) {
 			return (s.startsWith("BEGIN:"));
 		}
-		
-	}
-	
 
-	/* ----------------------- QR type: MECARD contact information --------------------- */
+	}
+
+	/*
+	 * ----------------------- QR type: MECARD contact information
+	 * ---------------------
+	 */
 	private static class QrContentContact extends BaseQrContent {
 		private Context mContext;
 
@@ -292,13 +311,13 @@ public class QrParser {
 			if (mCompany != null) {
 				intent.putExtra(ContactsContract.Intents.Insert.COMPANY, mCompany);
 			}
-			
+
 			mContext.startActivity(intent);
 		}
 
 		private void parseContact() {
 			String contact = mContent.substring(7);
-			Log.d(tag, "contact "+contact);
+			Log.d(tag, "contact " + contact);
 			String[] tokens = contact.split("(?<!\\\\);");
 			for (int i = 0; i < tokens.length; i++) {
 				tokens[i] = tokens[i].replace("\\", "");
@@ -325,7 +344,7 @@ public class QrParser {
 
 			StringBuilder res = new StringBuilder();
 			String text;
-			if (mName != null) { 
+			if (mName != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_name_title);
 				res.append(text + " " + mName + "\n");
 			}
@@ -341,7 +360,7 @@ public class QrParser {
 				text = mContext.getResources().getString(R.string.contact_qr_email_title);
 				res.append(text + " " + mEmail + "\n");
 			}
-			if (mCompany != null) { 
+			if (mCompany != null) {
 				text = mContext.getResources().getString(R.string.contact_qr_company_title);
 				res.append(text + " " + mCompany);
 			}
@@ -356,7 +375,7 @@ public class QrParser {
 			return (s.startsWith("MECARD:"));
 		}
 	}
-	
+
 	/* ----------------------- QR type: market links --------------------- */
 	private static class QrContentMarket extends BaseQrContent {
 		private Context mContext;
@@ -369,12 +388,10 @@ public class QrParser {
 
 		public void launch() {
 			try {
-				Intent intent = new Intent(Intent.ACTION_VIEW, 
-						Uri.parse(mContent));
+				Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContent));
 				mContext.startActivity(intent);
 			} catch (ActivityNotFoundException e) {
-				Toast.makeText(mContext, mContext.getResources()
-						.getString(R.string.alert_msg_invalid_market_link),
+				Toast.makeText(mContext, mContext.getResources().getString(R.string.alert_msg_invalid_market_link),
 						Toast.LENGTH_SHORT).show();
 			}
 		}
@@ -390,7 +407,7 @@ public class QrParser {
 		public static boolean match(String s) {
 			return (s.startsWith("market://"));
 		}
-	}	
+	}
 
 	/* ----------------------- QR type: phone number --------------------- */
 	private static class QrContentPhone extends BaseQrContent {
@@ -418,8 +435,7 @@ public class QrParser {
 		public static boolean match(String s) {
 			return (s.startsWith("tel:"));
 		}
-	}	
-
+	}
 
 	/* ----------------------- QR type: geolocation --------------------- */
 	private static class QrContentGeo extends BaseQrContent {
@@ -443,8 +459,7 @@ public class QrParser {
 			String[] tokens = mContent.substring(4).split("\\?q=");
 			StringBuilder res = new StringBuilder();
 			if (tokens.length == 2 && tokens[1].length() > 0) {
-				res.append(mContext.getResources().getString(R.string.geo_qr_title_title) +
-						" " + tokens[1] + "\n");
+				res.append(mContext.getResources().getString(R.string.geo_qr_title_title) + " " + tokens[1] + "\n");
 			}
 
 			String[] params = tokens[0].split(",");
@@ -456,18 +471,17 @@ public class QrParser {
 				float latitude = Float.parseFloat(params[0]);
 				String southMark = mContext.getResources().getString(R.string.geo_qr_latitude_south);
 				String northMark = mContext.getResources().getString(R.string.geo_qr_latitude_north);
-				res.append(mContext.getResources().getString(R.string.geo_qr_latitude_title) +
-						" " + Math.abs(latitude) + "\u00b0 " + (latitude < 0 ? southMark : northMark));
-				float longtitude = Float.parseFloat(params[1]);	
+				res.append(mContext.getResources().getString(R.string.geo_qr_latitude_title) + " " + Math.abs(latitude)
+						+ "\u00b0 " + (latitude < 0 ? southMark : northMark));
+				float longtitude = Float.parseFloat(params[1]);
 				String westMark = mContext.getResources().getString(R.string.geo_qr_longitude_west);
 				String eastMark = mContext.getResources().getString(R.string.geo_qr_longitude_east);
-				res.append("\n" + mContext.getResources().getString(R.string.geo_qr_longitude_title) + 
-						" " + Math.abs(longtitude) + "\u00b0 " + (longtitude < 0 ? westMark : eastMark));
+				res.append("\n" + mContext.getResources().getString(R.string.geo_qr_longitude_title) + " "
+						+ Math.abs(longtitude) + "\u00b0 " + (longtitude < 0 ? westMark : eastMark));
 				if (params.length == 3) {
-					float altitude = Float.parseFloat(params[2]);	
-					res.append("\n" + mContext.getResources().getString(R.string.geo_qr_altitude_title) + 
-							" " + altitude + " " + 
-							mContext.getResources().getString(R.string.geo_qr_altitude_suffix));
+					float altitude = Float.parseFloat(params[2]);
+					res.append("\n" + mContext.getResources().getString(R.string.geo_qr_altitude_title) + " "
+							+ altitude + " " + mContext.getResources().getString(R.string.geo_qr_altitude_suffix));
 				}
 				mIsValidData = true;
 				return res.toString();
@@ -483,7 +497,7 @@ public class QrParser {
 		public static boolean match(String s) {
 			return (s.startsWith("geo:"));
 		}
-	}	
+	}
 
 	/* ----------------------- QR type: sms --------------------- */
 	private static class QrContentSms extends BaseQrContent {
@@ -497,7 +511,7 @@ public class QrParser {
 
 		public void launch() {
 			String[] s = mContent.split(":");
-			String uri= s[0] + ":" + s[1];
+			String uri = s[0] + ":" + s[1];
 			Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse(uri));
 			intent.putExtra("compose_mode", true);
 
@@ -525,8 +539,8 @@ public class QrParser {
 		public static boolean match(String s) {
 			return (s.startsWith("smsto:"));
 		}
-	}	
-	
+	}
+
 	/* ----------------------- QR type: email --------------------- */
 	private static class QrContentMail extends BaseQrContent {
 		private Context mContext;
@@ -539,8 +553,8 @@ public class QrParser {
 
 		public void launch() {
 			Intent intent = new Intent(Intent.ACTION_SEND);
-			intent.setType("text/plain"); 
-			intent.putExtra(Intent.EXTRA_EMAIL, new String[]{mContent.substring(7)});
+			intent.setType("text/plain");
+			intent.putExtra(Intent.EXTRA_EMAIL, new String[] { mContent.substring(7) });
 			String text = mContext.getResources().getString(R.string.email_qr_send_dlg_title);
 			mContext.startActivity(Intent.createChooser(intent, text));
 		}
@@ -563,73 +577,95 @@ public class QrParser {
 		private Context mContext;
 
 		private final static String URL_REGEX = "((https?|ftp)\\:\\/\\/)?" + // SCHEME
-			"([a-z0-9+!*(),;?&=\\$_.-]+(\\:[a-z0-9+!*(),;?&=\\$_.-]+)?@)?" + // User and Pass
-			"([a-z0-9-.]*)\\.([a-z]{2,3})" + // Host or IP
-			"(\\:[0-9]{2,5})?" + // Port
-			"(\\/([a-z0-9+\\$_-]\\.?)+)*\\/?" + // Path
-			"(\\?[a-z+&\\$_.-][a-z0-9;:@&%=+\\/\\$_.-]*)?" + // GET Query
-			"(#[a-z_.-][a-z0-9+\\$_.-]*)?"; // Anchor
+				"([a-z0-9+!*(),;?&=\\$_.-]+(\\:[a-z0-9+!*(),;?&=\\$_.-]+)?@)?" + // User
+																					// and
+																					// Pass
+				"([a-z0-9-.]*)\\.([a-z]{2,3})" + // Host or IP
+				"(\\:[0-9]{2,5})?" + // Port
+				"(\\/([a-z0-9+\\$_-]\\.?)+)*\\/?" + // Path
+				"(\\?[a-z+&\\$_.-][a-z0-9;:@&%=+\\/\\$_.-]*)?" + // GET Query
+				"(#[a-z_.-][a-z0-9+\\$_.-]*)?"; // Anchor
 
-		public static final String TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL =
-			"(?:"
-			+ "(?:aero|arpa|asia|a[cdefgilmnoqrstuwxz])"
-			+ "|(?:biz|b[abdefghijmnorstvwyz])"
-			+ "|(?:cat|com|coop|c[acdfghiklmnoruvxyz])"
-			+ "|d[ejkmoz]"
-			+ "|(?:edu|e[cegrstu])"
-			+ "|f[ijkmor]"
-			+ "|(?:gov|g[abdefghilmnpqrstuwy])"
-			+ "|h[kmnrtu]"
-			+ "|(?:info|int|i[delmnoqrst])"
-			+ "|(?:jobs|j[emop])"
-			+ "|k[eghimnprwyz]"
-			+ "|l[abcikrstuvy]"
-			+ "|(?:mil|mobi|museum|m[acdeghklmnopqrstuvwxyz])"
-			+ "|(?:name|net|n[acefgilopruz])"
-			+ "|(?:org|om)"
-			+ "|(?:pro|p[aefghklmnrstwy])"
-			+ "|qa"
-			+ "|r[eosuw]"
-			+ "|s[abcdeghijklmnortuvyz]"
-			+ "|(?:tel|travel|t[cdfghjklmnoprtvwz])"
-			+ "|u[agksyz]"
-			+ "|v[aceginu]"
-			+ "|w[fs]"
-			+ "|(?:xn\\-\\-0zwm56d|xn\\-\\-11b5bs3a9aj6g|xn\\-\\-80akhbyknj4f|xn\\-\\-9t4b11yi5a|xn\\-\\-deba0ad|xn\\-\\-g6w251d|xn\\-\\-hgbk6aj7f53bba|xn\\-\\-hlcj6aya9esc7a|xn\\-\\-jxalpdlp|xn\\-\\-kgbechtv|xn\\-\\-zckzah)"
-			+ "|y[etu]"
-			+ "|z[amw]))";
+		public static final String TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL = "(?:"
+				+ "(?:aero|arpa|asia|a[cdefgilmnoqrstuwxz])"
+				+ "|(?:biz|b[abdefghijmnorstvwyz])"
+				+ "|(?:cat|com|coop|c[acdfghiklmnoruvxyz])"
+				+ "|d[ejkmoz]"
+				+ "|(?:edu|e[cegrstu])"
+				+ "|f[ijkmor]"
+				+ "|(?:gov|g[abdefghilmnpqrstuwy])"
+				+ "|h[kmnrtu]"
+				+ "|(?:info|int|i[delmnoqrst])"
+				+ "|(?:jobs|j[emop])"
+				+ "|k[eghimnprwyz]"
+				+ "|l[abcikrstuvy]"
+				+ "|(?:mil|mobi|museum|m[acdeghklmnopqrstuvwxyz])"
+				+ "|(?:name|net|n[acefgilopruz])"
+				+ "|(?:org|om)"
+				+ "|(?:pro|p[aefghklmnrstwy])"
+				+ "|qa"
+				+ "|r[eosuw]"
+				+ "|s[abcdeghijklmnortuvyz]"
+				+ "|(?:tel|travel|t[cdfghjklmnoprtvwz])"
+				+ "|u[agksyz]"
+				+ "|v[aceginu]"
+				+ "|w[fs]"
+				+ "|(?:xn\\-\\-0zwm56d|xn\\-\\-11b5bs3a9aj6g|xn\\-\\-80akhbyknj4f|xn\\-\\-9t4b11yi5a|xn\\-\\-deba0ad|xn\\-\\-g6w251d|xn\\-\\-hgbk6aj7f53bba|xn\\-\\-hlcj6aya9esc7a|xn\\-\\-jxalpdlp|xn\\-\\-kgbechtv|xn\\-\\-zckzah)"
+				+ "|y[etu]" + "|z[amw]))";
 
 		/**
 		 * Good characters for Internationalized Resource Identifiers (IRI).
-		 * This comprises most common used Unicode characters allowed in IRI
-		 * as detailed in RFC 3987.
-		 * Specifically, those two byte Unicode characters are not included.
+		 * This comprises most common used Unicode characters allowed in IRI as
+		 * detailed in RFC 3987. Specifically, those two byte Unicode characters
+		 * are not included.
 		 */
-		public static final String GOOD_IRI_CHAR =
-			"a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF";
+		public static final String GOOD_IRI_CHAR = "a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF";
 
 		/**
-		 *  Regular expression pattern to match most part of RFC 3987
-		 *  Internationalized URLs, aka IRIs.  Commonly used Unicode characters are
-		 *  added.
+		 * Regular expression pattern to match most part of RFC 3987
+		 * Internationalized URLs, aka IRIs. Commonly used Unicode characters
+		 * are added.
 		 */
-		public static final Pattern WEB_URL = Pattern.compile(
-			"((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
-			+ "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
-			+ "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
-			+ "((?:(?:[" + GOOD_IRI_CHAR + "][" + GOOD_IRI_CHAR + "\\-]{0,64}\\.)+"   // named host
-			+ TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL
-			+ "|(?:(?:25[0-5]|2[0-4]" // or ip address
-			+ "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(?:25[0-5]|2[0-4][0-9]"
-			+ "|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1]"
-			+ "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
-			+ "|[1-9][0-9]|[0-9])))"
-			+ "(?:\\:\\d{1,5})?)" // plus option port number
-			+ "(\\/(?:(?:[" + GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~"  // plus option query params
-			+ "\\-\\.\\+\\!\\*\\'\\(\\)\\,\\_])|(?:\\%[a-fA-F0-9]{2}))*)?"
-			+ "(?:\\b|$)"); // and finally, a word boundary or end of
-							// input.  This is to stop foo.sure from
-							// matching as foo.su
+		public static final Pattern WEB_URL = Pattern
+				.compile("((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
+						+ "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
+						+ "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
+						+ "((?:(?:["
+						+ GOOD_IRI_CHAR
+						+ "]["
+						+ GOOD_IRI_CHAR
+						+ "\\-]{0,64}\\.)+" // named host
+						+ TOP_LEVEL_DOMAIN_STR_FOR_WEB_URL
+						+ "|(?:(?:25[0-5]|2[0-4]" // or ip address
+						+ "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(?:25[0-5]|2[0-4][0-9]"
+						+ "|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1]"
+						+ "[0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(?:25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}"
+						+ "|[1-9][0-9]|[0-9])))" + "(?:\\:\\d{1,5})?)" // plus
+																		// option
+																		// port
+																		// number
+						+ "(\\/(?:(?:[" + GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~" // plus
+																						// option
+																						// query
+																						// params
+						+ "\\-\\.\\+\\!\\*\\'\\(\\)\\,\\_])|(?:\\%[a-fA-F0-9]{2}))*)?" + "(?:\\b|$)"); // and
+																										// finally,
+																										// a
+																										// word
+																										// boundary
+																										// or
+																										// end
+																										// of
+																										// input.
+																										// This
+																										// is
+																										// to
+																										// stop
+																										// foo.sure
+																										// from
+																										// matching
+																										// as
+																										// foo.su
 
 		public QrContentUrl(Context ctx, String s) {
 			mContext = ctx;
@@ -638,9 +674,9 @@ public class QrParser {
 		}
 
 		public void launch() {
-			if (!mContent.startsWith("http:") &&
-				!mContent.startsWith("https:") &&
-				!mContent.startsWith("ftp:")) { mContent = "http://" + mContent; }
+			if (!mContent.startsWith("http:") && !mContent.startsWith("https:") && !mContent.startsWith("ftp:")) {
+				mContent = "http://" + mContent;
+			}
 
 			Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mContent));
 			mContext.startActivity(intent);
@@ -655,8 +691,8 @@ public class QrParser {
 		}
 
 		public static boolean match(String s) {
-			//Pattern pattern = Pattern.compile(URL_REGEX);
-			//Matcher matcher = pattern.matcher(s);
+			// Pattern pattern = Pattern.compile(URL_REGEX);
+			// Matcher matcher = pattern.matcher(s);
 			Matcher matcher = WEB_URL.matcher(s);
 			return matcher.matches();
 		}

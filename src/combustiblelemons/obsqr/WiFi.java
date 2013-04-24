@@ -16,46 +16,44 @@ public class WiFi {
 
 	private static WifiConfiguration config;
 	private static WifiManager manager;
-	
+
 	protected static String SSID;
 	private static String PASS;
 	protected static String ENCRYPTION;
-	
-	protected static enum Encryption {
-		WEP("WEP"), WPA("WPA"), NONE("nopas");
-		String value;
-		private Encryption(String s) {
-			value = s;
-		}
-		
+
+	protected static class Encryption {
+		public final static String WEP = "WEP";
+		public final static String WAP = "WEP";
+		public final static String NOPASS = "nopass";
 	}
+
 	private static boolean hidden;
-	
+
 	public WiFi(Context context, String ssid, String pass, String encryption, boolean hidden) {
 		WiFi.context = context;
 		WiFi.PASS = pass;
 		WiFi.SSID = ssid;
 		WiFi.ENCRYPTION = encryption;
 		WiFi.hidden = hidden;
-		manager  = (WifiManager) WiFi.context.getSystemService(Context.WIFI_SERVICE);	
+		manager = (WifiManager) WiFi.context.getSystemService(Context.WIFI_SERVICE);
 	}
-	
+
 	@SuppressWarnings("unused")
 	private static String toHex(String arg) {
 		return String.format("%x", new BigInteger(1, arg.getBytes()));
-	}	
-	
+	}
+
 	protected boolean enable() {
-		EnableWiFi wifi = new EnableWiFi();		
+		EnableWiFi wifi = new EnableWiFi();
 		wifi.execute(config);
 		return true;
 	}
-	
+
 	private static class EnableWiFi extends AsyncTask<WifiConfiguration, Boolean, Boolean> {
 
 		@Override
-		protected Boolean doInBackground(WifiConfiguration... params) {			
-			if (!manager.isWifiEnabled()) {				
+		protected Boolean doInBackground(WifiConfiguration... params) {
+			if (!manager.isWifiEnabled()) {
 				Log.d(tag, "====================NOT ENABLED=======================");
 				if (manager.setWifiEnabled(true)) {
 					Log.v("Obsqr", "WiFi enabled");
@@ -65,15 +63,15 @@ public class WiFi {
 					return false;
 				}
 				int count = 0;
-				while(!manager.isWifiEnabled()) {
-					if (count >=10) {
+				while (!manager.isWifiEnabled()) {
+					if (count >= 10) {
 						Log.d(tag, "Took over 10s to enable");
 						return false;
 					}
 					try {
-						Thread.sleep(1000L);						
+						Thread.sleep(1000L);
 					} catch (InterruptedException e) {
-						
+
 					}
 					count++;
 				}
@@ -81,13 +79,13 @@ public class WiFi {
 				Log.d(tag, "====================WIFI IS AREADY ENABLED=======================");
 			}
 			return true;
-		}		
-		
+		}
+
 		@Override
-		protected void onPostExecute(Boolean result) {			
-			super.onPostExecute(result);		
+		protected void onPostExecute(Boolean result) {
+			super.onPostExecute(result);
 			Log.v(tag, "ON POST EXECUTE");
-			Log.v(tag, "Network: " + SSID + "\nPass: " + PASS + "\nEncryption: "  + ENCRYPTION + "\nHidden: " + hidden);
+			Log.v(tag, "Network: " + SSID + "\nPass: " + PASS + "\nEncryption: " + ENCRYPTION + "\nHidden: " + hidden);
 			config = freshConfig(SSID, hidden);
 			if (ENCRYPTION.equalsIgnoreCase("nopass")) {
 				config = configureUnencrypted(config);
@@ -98,11 +96,11 @@ public class WiFi {
 			} else if (ENCRYPTION.equalsIgnoreCase("WPA")) {
 				Log.v(tag, "Network is WPA");
 				config = configureForWPA(config, PASS);
-			}			
+			}
 			injectNetwork();
 		}
 	}
-	
+
 	private static Integer injectNetwork() {
 		Integer knownId = isKnown(manager, config.SSID);
 		if (knownId != -1) {
@@ -112,10 +110,10 @@ public class WiFi {
 		}
 		String message = "";
 		try {
-			
+
 			int newNetworkId = manager.addNetwork(config);
 			if (newNetworkId >= 0) {
-				Log.d(tag, "Trying to enable network ID = " + newNetworkId + "\tSSID = " + SSID);								
+				Log.d(tag, "Trying to enable network ID = " + newNetworkId + "\tSSID = " + SSID);
 				if (manager.enableNetwork(newNetworkId, true)) {
 					message = context.getResources().getString(R.string.alert_wifi_msg_connecting);
 					manager.saveConfiguration();
@@ -134,9 +132,9 @@ public class WiFi {
 		}
 		return -1;
 	}
-	
+
 	private static WifiConfiguration freshConfig(String ssid, boolean _hidden) {
-		WifiConfiguration cfg = new WifiConfiguration();			
+		WifiConfiguration cfg = new WifiConfiguration();
 		cfg.allowedAuthAlgorithms.clear();
 		cfg.allowedGroupCiphers.clear();
 		cfg.allowedPairwiseCiphers.clear();
@@ -145,14 +143,14 @@ public class WiFi {
 		cfg.SSID = quote(ssid);
 		cfg.hiddenSSID = _hidden;
 		return cfg;
-	}		
-	
+	}
+
 	private static WifiConfiguration configureUnencrypted(WifiConfiguration cfg) {
 		cfg = freshConfig(SSID, hidden);
 		cfg.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
 		return cfg;
 	}
-	
+
 	private static WifiConfiguration configureForWEP(WifiConfiguration cfg, String pass) {
 		cfg = freshConfig(SSID, hidden);
 		cfg.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.SHARED);
@@ -163,10 +161,10 @@ public class WiFi {
 		cfg.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
 		Log.d(tag, "Configuring WEP with a pass = " + pass);
 		cfg.wepTxKeyIndex = 0;
-		cfg.wepKeys[0] = quote(pass);			
+		cfg.wepKeys[0] = quote(pass);
 		return cfg;
 	}
-	
+
 	private static WifiConfiguration configureForWPA(WifiConfiguration cfg, String pass) {
 		cfg = freshConfig(SSID, hidden);
 		cfg.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
@@ -182,13 +180,12 @@ public class WiFi {
 		cfg.preSharedKey = quote(pass);
 		return cfg;
 	}
-	
-	
+
 	/**
 	 * 
 	 * @param manager
 	 * @param SSID
-	 * @return -1 if not found in  the known list of networks
+	 * @return -1 if not found in the known list of networks
 	 */
 	private static Integer isKnown(WifiManager manager, String SSID) {
 		List<WifiConfiguration> known = manager.getConfiguredNetworks();
@@ -197,16 +194,16 @@ public class WiFi {
 				Log.d(tag, SSID + "is already known\n ID = " + network.networkId);
 				return network.networkId;
 			}
-		}	
+		}
 		Log.d(tag, SSID + " does not appear to be known");
 		return -1;
-	}	
-	
+	}
+
 	private static String quote(String SSID) {
 		if (!SSID.startsWith("\"")) {
 			SSID = '\"' + SSID;
 			if (!SSID.endsWith("\""))
-				SSID = SSID + '\"';			
+				SSID = SSID + '\"';
 		}
 		return SSID;
 	}
