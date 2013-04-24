@@ -10,7 +10,7 @@ Master is being kept as close as to original that is being developed by Trikita.
 Obsqr Master branch should stay as close to updates as possible over at this repo.
 
 ###Changelog
-####2.5-1.2
+####2.5-1.3
 * Empty WiFi properties fix
 * Warning while no password while connection specified is encrypted in WiFi
 * Delay of obnoxious rate dialog until way later ( min 25 back pressed which does not occur always)
