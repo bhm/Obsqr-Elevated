@@ -11,6 +11,12 @@ Obsqr Master branch should stay as close to updates as possible over at this rep
 
 ###Changelog
 ####2.5-1.2
+* Empty WiFi properties fix
+* Warning while no password while connection specified is encrypted in WiFi
+* Delay of obnoxious rate dialog until way later ( min 25 back pressed which does not occur always)
+* New graphics
+
+####2.5-1.2
 * WiFi support with accordance to proposed standard [here](http://code.google.com/p/zxing/wiki/BarcodeContents)
 
 ####2.5-1.1
