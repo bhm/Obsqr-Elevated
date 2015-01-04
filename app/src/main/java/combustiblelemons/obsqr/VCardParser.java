@@ -17,41 +17,41 @@ public class VCardParser {
             return CommonDataKinds.Phone.TYPE_MAIN;
         } else {
             for (int i = 0; i < phonePrefs.length; i++) {
-                if (phonePrefs[i].equalsIgnoreCase("WORK")) {
+                if ("WORK".equalsIgnoreCase(phonePrefs[i])) {
                     for (int j = 0; j < phonePrefs.length; j++) {
-                        if (phonePrefs[j].equalsIgnoreCase("CELL")) {
+                        if ("CELL".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_WORK_MOBILE;
-                        } else if (phonePrefs[j].equalsIgnoreCase("PAGER")) {
+                        } else if ("PAGER".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_WORK_PAGER;
-                        } else if (phonePrefs[j].equalsIgnoreCase("FAX")) {
+                        } else if ("FAX".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_FAX_WORK;
                         } else {
                             return CommonDataKinds.Phone.TYPE_WORK;
                         }
                     }
-                } else if (phonePrefs[i].equalsIgnoreCase("PREF")) {
+                } else if ("PREF".equalsIgnoreCase(phonePrefs[i])) {
                     for (int j = 0; j < phonePrefs.length; j++) {
-                        if (phonePrefs[j].equalsIgnoreCase("CELL")) {
+                        if ("CELL".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_MOBILE;
-                        } else if (phonePrefs[j].equalsIgnoreCase("COMPANY")) {
+                        } else if ("COMPANY".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_COMPANY_MAIN;
-                        } else if (phonePrefs[j].equalsIgnoreCase("ASSISTANT")) {
+                        } else if ("ASSISTANT".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_ASSISTANT;
                         }
                     }
-                } else if (phonePrefs[i].equalsIgnoreCase("HOME")) {
+                } else if ("HOME".equalsIgnoreCase(phonePrefs[i])) {
                     for (int j = 0; j < phonePrefs.length; j++) {
-                        if (phonePrefs[j].equalsIgnoreCase("FAX")) {
+                        if ("FAX".equalsIgnoreCase(phonePrefs[j])) {
                             result = CommonDataKinds.Phone.TYPE_FAX_HOME;
                         } else {
                             result = CommonDataKinds.Phone.TYPE_HOME;
                         }
                     }
-                } else if (phonePrefs[i].equalsIgnoreCase("ASSISTANT")) {
+                } else if ("ASSISTANT".equalsIgnoreCase(phonePrefs[i])) {
                     result = CommonDataKinds.Phone.TYPE_ASSISTANT;
-                } else if (phonePrefs[i].equalsIgnoreCase("FAX")) {
+                } else if ("FAX".equalsIgnoreCase(phonePrefs[i])) {
                     result = CommonDataKinds.Phone.TYPE_FAX_WORK;
-                } else if (phonePrefs[i].equalsIgnoreCase("CAR")) {
+                } else if ("CAR".equalsIgnoreCase(phonePrefs[i])) {
                     result = CommonDataKinds.Phone.TYPE_CAR;
                 }
             }
@@ -67,9 +67,9 @@ public class VCardParser {
         int result = CommonDataKinds.Email.TYPE_WORK;
         if (EmailPrefs.length > 1) {
             for (String pref : EmailPrefs) {
-                if (pref.equalsIgnoreCase("HOME")) {
+                if ("HOME".equalsIgnoreCase(pref)) {
                     result = CommonDataKinds.Email.TYPE_HOME;
-                } else if (pref.equalsIgnoreCase("MOBILE") || pref.equalsIgnoreCase("CELL")) {
+                } else if ("MOBILE".equalsIgnoreCase(pref) || "CELL".equalsIgnoreCase(pref)) {
                     result = CommonDataKinds.Email.TYPE_MOBILE;
                 }
             }
@@ -82,19 +82,16 @@ public class VCardParser {
      * @return int value representing phone type from StructuredPostal. Default TYPE_HOME
      */
     private static int toAddressType(String[] AddressPrefs) {
-        int result = CommonDataKinds.StructuredPostal.TYPE_HOME;
         if (AddressPrefs.length > 1) {
             for (String address : AddressPrefs) {
-                if (address.equalsIgnoreCase("WORK")) {
-                    result = StructuredPostal.TYPE_WORK;
+                if ("WORK".equalsIgnoreCase(address)) {
+                    return StructuredPostal.TYPE_WORK;
                 } else {
-                    result = StructuredPostal.TYPE_OTHER;
+                    return StructuredPostal.TYPE_OTHER;
                 }
             }
-        } else {
-            return result = StructuredPostal.TYPE_HOME;
         }
-        return result;
+        return StructuredPostal.TYPE_HOME;
     }
 
     /**
@@ -106,37 +103,36 @@ public class VCardParser {
         String[] contact = mContents.split("\n");
 
         for (int i = 0; i < contact.length; i++) {
-            if (contact[i].startsWith("VERSION:")) {
-                ;
+            if ("VERSION:".startsWith(contact[i])) {
+                continue;
             }
             // N: NAME;SURNAME;;;
-            else if (contact[i].startsWith("N:")) {
+            if ("N:".startsWith(contact[i])) {
                 String[] name_line = contact[i].split(":");
                 card.Name = name_line[1].replaceAll(";", " ");
-            } else if (contact[i].startsWith("FN:")) {
+            } else if ("FN:".startsWith(contact[i])) {
                 card.FName = contact[i].substring(3);
-            } else if (contact[i].startsWith("TEL")) {
+            } else if ("TEL".startsWith(contact[i])) {
                 // TEL;PREF1;PREFN : TEL_NUMBER
                 String[] tel_line = contact[i].split(":");
-                card.mPhones.put((Integer) toPhoneType(tel_line[0].split(";")),
-                        tel_line[1]);
-            } else if (contact[i].startsWith("EMAIL")) {
+                card.mPhones.put(toPhoneType(tel_line[0].split(";")), tel_line[1]);
+            } else if ("EMAIL".startsWith(contact[i])) {
                 // EMAIL;PREF1;PREFN : EMAIL_ADDRESS
                 String[] email_line = contact[i].split(":");
                 card.mEmails.put(toEmailType(email_line[0].split(";")), email_line[1]);
                 Log.v("Parser OBSQR", email_line[1]);
-            } else if (contact[i].startsWith("ADR")) {
+            } else if ("ADR".startsWith(contact[i])) {
                 String[] address_line = contact[i].split(":");
                 card.mAddresses.put(toAddressType(address_line[0].split(";")), address_line[1]);
-            } else if (contact[i].startsWith("TITLE")) {
+            } else if ("TITLE".startsWith(contact[i])) {
                 String[] title_line = contact[i].split(":");
                 card.mTitles.add(title_line[1]);
-            } else if (contact[i].startsWith("ORG")) {
+            } else if ("ORG".startsWith(contact[i])) {
                 String[] mOrganisation = contact[i].split(":");
                 card.Organizations.add(mOrganisation[1].replace(";", " "));
-            } else if (contact[i].startsWith("URL")) {
+            } else if ("URL".startsWith(contact[i])) {
                 card.URLs.add(contact[i].substring(4));
-            } else if (contact[i].startsWith("BDAY")) {
+            } else if ("BDAY".startsWith(contact[i])) {
                 card.BirthDay = contact[i].substring(5);
             }
         }
